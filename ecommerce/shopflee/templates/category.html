@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
 
 {% block metadescription %}
     {% if category %}
@@ -13,7 +15,7 @@
     {% if category %}
         {{ category.name }} - ACF store
     {% else %}
-        Grab New Collections
+        ACF DATA MANAGEMENT
     {% endif %}
 {% endblock %}
 
@@ -63,4 +65,5 @@
             {% endfor %}
         </div>
     </div>
+    
 {% endblock %}

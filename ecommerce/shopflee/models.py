@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 
 
 
+
 class Category(models.Model):
     name = models.CharField(max_length=250, unique=True)
     slug = models.SlugField(max_length=250, unique=True)
@@ -20,7 +21,7 @@ class Category(models.Model):
     def __str__(self):
         return self.name
     def get_url(self):
-        return reverse('shopflee:Products_by_categories', args=[self.slug])
+        return reverse('cashflow:Products_by_categories', args=[self.slug])
 class Product(models.Model):
     name = models.CharField(max_length=250)
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -40,84 +41,9 @@ class Product(models.Model):
     def __str__(self):
         return self.name
     def get_url(self):
-        return reverse('shopflee:productdetails',args=[self.category.slug,self.slug])
+        return reverse('cashflow:productdetails',args=[self.category.slug,self.slug])
 
 
-class UpdateCashIn(models.Model):
-    income_source = models.CharField(max_length=250)
-    date = models.DateField()  # Remove unique=True
-    status = models.CharField(max_length=50, default='update', choices=[('Received', 'Received'), ('Scheduled', 'Scheduled')])
-    remark = models.TextField(blank=True)
-    cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    processed = models.BooleanField(default=False)
-    def save(self, *args, **kwargs):
-        # If the provided remark is None, set it to an empty string
-        if self.remark is None:
-            self.remark = ''
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Update Cash In -  {self.date}"
-
-
-class UpdateCashOut(models.Model):
-    PRIORITY_CHOICES = [
-        ('urgent', 'Urgent'),
-        ('important', 'Important'),
-        ('normal', 'Normal'),
-    ]
-
-    expense_source = models.CharField(max_length=250)
-    date = models.DateField()
-    status = models.CharField(max_length=50, default='update', choices=[('Paid', 'Paid'), ('Unpaid', 'Unpaid')])
-    remark = models.TextField(blank=True)
-    cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    processed = models.BooleanField(default=False)
-    priority_level = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='normal')
-
-    def save(self, *args, **kwargs):
-        if self.remark is None:
-            self.remark = ''
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        priority_color = {
-            'urgent': 'red',
-            'important': 'orange',
-            'normal': 'blue',
-        }
-        font_color = priority_color.get(self.priority_level, 'black')
-        formatted_priority = self.priority_level.capitalize()
-        return f"<span style='color: {font_color};'>{formatted_priority} - {self.date}</span>"
-class Dashboard(models.Model):
-    total_cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_actual_cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_actual_cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    current_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    
-    class Meta:
-        verbose_name = "Dashboard"
-        verbose_name_plural = "Dashboard"
-        
-class AvailableBalance(models.Model):
-    date = models.DateField(unique=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def __str__(self):
-        return f'Available Balance for {self.date}'
-
-
-
-class Summary(models.Model):
-    date = models.DateField(unique=True)
-    cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    actual_cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    actual_cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    actual_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    planned_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    
 
 
     def __str__(self):

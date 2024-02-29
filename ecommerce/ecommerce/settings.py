@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'shopflee',
+    'cashflow',
     'import_export',
 ]
 
@@ -58,7 +59,8 @@ ROOT_URLCONF = 'ecommerce.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR,'shopflee','templates')],
+        #'DIRS': [os.path.join(BASE_DIR,'shopflee','templates')],
+         'DIRS': [os.path.join(BASE_DIR,'cashflow','templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -86,20 +88,25 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
 
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'mydb',
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'sql_mode': 'STRICT_TRANS_TABLES',
+#         },
+#     },
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'mydb',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'sql_mode': 'STRICT_TRANS_TABLES',
-        },
-    },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
