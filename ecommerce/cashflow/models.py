@@ -7,41 +7,42 @@ from django.contrib.auth.models import User
 
 
 
-class Category(models.Model):
-    name = models.CharField(max_length=250, unique=True)
-    slug = models.SlugField(max_length=250, unique=True)
-    description = models.TextField(blank=True)
-    image = models.ImageField(upload_to='category', blank=True)
 
-    class Meta:
-        ordering = ('name',)
-        verbose_name = 'category'
-        verbose_name_plural = 'categories'
+# class Category(models.Model):
+#     name = models.CharField(max_length=250, unique=True)
+#     slug = models.SlugField(max_length=250, unique=True)
+#     description = models.TextField(blank=True)
+#     image = models.ImageField(upload_to='category', blank=True)
 
-    def __str__(self):
-        return self.name
-    def get_url(self):
-        return reverse('cashflow:Products_by_categories', args=[self.slug])
-class Product(models.Model):
-    name = models.CharField(max_length=250)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock = models.PositiveIntegerField()
-    available = models.BooleanField(default=True)
-    date = models.DateField()
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-    description = models.TextField(blank=True)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    slug = models.SlugField(max_length=250, unique=True, blank=True)
-    image = models.ImageField(upload_to='product', blank=True)
-    def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
+#     class Meta:
+#         ordering = ('name',)
+#         verbose_name = 'category'
+#         verbose_name_plural = 'categories'
 
-    def __str__(self):
-        return self.name
-    def get_url(self):
-        return reverse('cashflow:productdetails',args=[self.category.slug,self.slug])
+#     def __str__(self):
+#         return self.name
+#     def get_url(self):
+#         return reverse('cashflow:Products_by_categories', args=[self.slug])
+# class Product(models.Model):
+#     name = models.CharField(max_length=250)
+#     price = models.DecimalField(max_digits=10, decimal_places=2)
+#     stock = models.PositiveIntegerField()
+#     available = models.BooleanField(default=True)
+#     date = models.DateField()
+#     created = models.DateTimeField(auto_now_add=True)
+#     updated = models.DateTimeField(auto_now=True)
+#     description = models.TextField(blank=True)
+#     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+#     slug = models.SlugField(max_length=250, unique=True, blank=True)
+#     image = models.ImageField(upload_to='product', blank=True)
+#     def save(self, *args, **kwargs):
+#         self.slug = slugify(self.name)
+#         super().save(*args, **kwargs)
+
+#     def __str__(self):
+#         return self.name
+#     def get_url(self):
+#         return reverse('cashflow:productdetails',args=[self.category.slug,self.slug])
 
 
 class UpdateCashIn(models.Model):
@@ -112,16 +113,18 @@ class UpdateCashOut(models.Model):
         font_color = priority_color.get(self.priority_level, 'black')
         formatted_priority = self.priority_level.capitalize()
         return f"<span style='color: {font_color};'>{formatted_priority} - {self.date}</span>"
+
+
 class Dashboard(models.Model):
     total_cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_actual_cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_actual_cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    current_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
     
     class Meta:
         verbose_name = "Dashboard"
         verbose_name_plural = "Dashboard"
+
         
 class AvailableBalance(models.Model):
     date = models.DateField(unique=True)
@@ -136,10 +139,10 @@ class Summary(models.Model):
     date = models.DateField(unique=True)
     cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    actual_cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    actual_cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    actual_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    planned_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # actual_cash_in = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # actual_cash_out = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # actual_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
 
 

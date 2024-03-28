@@ -3,9 +3,30 @@ from django.urls import reverse
 from django.utils.text import slugify
 from datetime import timedelta
 from django.contrib.auth.models import User
+from django.utils import timezone
 
+class Supplier(models.Model):
+    material_provided = models.TextField()
+    packing_options = models.TextField()
+    purchase_price_cif_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
+    does_price_change_per_package = models.BooleanField(default=False)
+    payment_terms = models.CharField(max_length=50, default='update', choices=[('CAD', 'CAD'), ('LC', 'LC')])
+    lead_time_weeks = models.IntegerField()
 
+    def __str__(self):
+        return f'Supplier {self.id}'
 
+class Project(models.Model):
+    po_date = models.DateField(default=timezone.now)
+    material_supplied = models.TextField()
+    supplier = models.CharField(max_length=255)
+    selling_price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.DecimalField(max_digits=10, decimal_places=2,default=False)
+    packing_options = models.CharField(max_length=255)
+
+    def __str__(self):
+        
+        return f'Project {self.id}'
 
 class Category(models.Model):
     name = models.CharField(max_length=250, unique=True)
@@ -44,16 +65,3 @@ class Product(models.Model):
         return reverse('cashflow:productdetails',args=[self.category.slug,self.slug])
 
 
-
-
-    def __str__(self):
-
-        return f'Summary for {self.date}'
-
-class UserActionLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    action_time = models.DateTimeField(auto_now_add=True)
-    action_description = models.TextField()
-
-    def __str__(self):
-        return f"{self.user.username} - {self.action_time} - {self.action_description}"

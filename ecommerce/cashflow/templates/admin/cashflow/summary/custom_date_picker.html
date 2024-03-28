@@ -1,0 +1,6 @@
+{% load i18n admin_static %}
+<div class="selector">
+    <label for="custom-date-picker">{% trans "Select Date" %}:</label>
+    <input id="custom-date-picker" type="date" name="custom_date" value="{{ date|default_if_none:'' }}">
+    <a href="{{ reset_link }}">{% trans "Clear" %}</a>
+</div>

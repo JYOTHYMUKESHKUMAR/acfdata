@@ -20,11 +20,15 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+   
     path('admin/', admin.site.urls),
-   # path('',include('shopflee.urls')),
-    path('',include('cashflow.urls')),
-
+    path('',include('shopflee.urls')),
+    # path('',include('cashflow.urls')),
+    #path('admin_tools_stats/', include('admin_tools_stats.urls'))
+    #path('supply_chain/', include('supply_chain.urls')),
 ]
+
+
 if settings.DEBUG:
     urlpatterns +=static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
     urlpatterns +=static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)

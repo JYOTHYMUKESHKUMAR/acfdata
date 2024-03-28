@@ -1,0 +1,18 @@
+{% load i18n admin_static %}
+<div id="date-filter">
+    <h3>{% trans "Date" %}</h3>
+    <ul class="filter-list">
+        {% for choice in choices %}
+            <li>
+                <a href="{{ choice.query_string|iriencode }}">{{ choice.display }}</a>
+            </li>
+        {% endfor %}
+        <li>
+            <a href="#" class="date-picker-trigger">{% trans "Custom Date" %}</a>
+            <div id="date-picker-container" style="display:none;">
+                <input type="date" name="custom_date" id="custom-date-picker">
+                <a href="{{ reset_link }}" id="clear-custom-date">{% trans "Clear" %}</a>
+            </div>
+        </li>
+    </ul>
+</div>

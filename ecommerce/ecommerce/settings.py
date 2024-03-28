@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -31,9 +32,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    #  'admin_tools_stats',  # this must be BEFORE 'admin_tools' and 'django.contrib.admin'
+    #  'django_nvd3',
+    #"admincharts",
+    
     "admin_interface",
-    "colorfield",
+    "colorfield", 
     'django.contrib.admin',
+    'rangefilter',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -42,6 +48,9 @@ INSTALLED_APPS = [
     'shopflee',
     'cashflow',
     'import_export',
+    'supply_chain',
+    
+    
 ]
 
 MIDDLEWARE = [
@@ -105,6 +114,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 30,  # Adjust the timeout value as needed
+        },
     }
 }
 

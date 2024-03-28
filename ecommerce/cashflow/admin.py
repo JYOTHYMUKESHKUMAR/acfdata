@@ -1,6 +1,16 @@
 from django.contrib import admin
 from django import forms
+
+
+from rangefilter.filters import (
+    DateRangeFilter,
+    DateTimeRangeFilterBuilder,
+    NumericRangeFilterBuilder,
+    DateRangeQuickSelectListFilterBuilder,
+)
+
 from django.db import models
+
 from django.db.models import Sum
 import csv
 from django.shortcuts import render
@@ -10,11 +20,14 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.template.loader import render_to_string
 from django.http import HttpResponseRedirect
+from django.utils.translation import gettext_lazy as _
 from collections import defaultdict
+from datetime import timedelta
+from django.utils import timezone
 from import_export.admin import ImportExportModelAdmin, ExportActionMixin
 from import_export import fields, resources,widgets
 from django.contrib.auth.decorators import user_passes_test
-from .models import Category, Product,  UpdateCashIn, UpdateCashOut, AvailableBalance,Dashboard, Summary,UserActionLog
+from .models import  UpdateCashIn, UpdateCashOut, AvailableBalance,Dashboard, Summary,UserActionLog
 
 
 class UpdateCashInInline(admin.TabularInline):
@@ -91,14 +104,14 @@ class UpdateCashInAdmin(ImportExportModelAdmin, ExportActionMixin):
 
         # Calculate the sum for cash_in and actual_cash_in
         total_cash_in = sum(cash_in_values)
-        total_actual_cash_in = sum(obj.cash_in if obj.status == 'Received' else 0 for obj in objects_with_same_date)
+        #total_actual_cash_in = sum(obj.cash_in if obj.status == 'Received' else 0 for obj in objects_with_same_date)
 
         # Update or create Summary record for the specified date
         summary, _ = Summary.objects.update_or_create(
             date=date,
             defaults={
                 'cash_in': total_cash_in,
-                'actual_cash_in': total_actual_cash_in,
+                #'actual_cash_in': total_actual_cash_in,
                 # Add other fields as needed
             }
         )
@@ -245,14 +258,14 @@ class UpdateCashOutAdmin(ImportExportModelAdmin, ExportActionMixin):
 
             # Calculate the sum for cash_out and actual_cash_out
             total_cash_out = sum(cash_out_values)
-            total_actual_cash_out = sum(obj.cash_out if obj.status == 'Paid' else 0 for obj in objects_with_same_date)
+            #total_actual_cash_out = sum(obj.cash_out if obj.status == 'Paid' else 0 for obj in objects_with_same_date)
 
             # Update or create Summary record for the specified date
             summary, _ = Summary.objects.update_or_create(
                 date=date,
                 defaults={
                     'cash_out': total_cash_out,
-                    'actual_cash_out': total_actual_cash_out,
+                    #'actual_cash_out': total_actual_cash_out,
                     # Add other fields as needed
                 }
             )
@@ -330,8 +343,8 @@ class AvailableBalanceAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         # Update the corresponding Summary model
         summary, created = Summary.objects.get_or_create(date=obj.date)
-        summary.actual_balance = obj.amount 
-        summary.planned_balance = obj.amount
+        #summary.actual_balance = obj.amount 
+        summary.balance = obj.amount
         
         summary.save()
         # Log the user action
@@ -343,8 +356,8 @@ class AvailableBalanceAdmin(admin.ModelAdmin):
         
         
 class DashboardAdmin(admin.ModelAdmin):
-    list_display = ('total_cash_in', 'total_cash_out', 'total_actual_cash_in', 'total_actual_cash_out', 'current_balance')
-    readonly_fields = ('total_cash_in', 'total_cash_out', 'total_actual_cash_in', 'total_actual_cash_out', 'current_balance')
+    list_display = ('total_cash_in', 'total_cash_out', 'balance_colored')
+    readonly_fields = ('total_cash_in', 'total_cash_out', 'balance_colored')
 
     def has_add_permission(self, request):
         return False  # Disable the ability to add new Dashboard records
@@ -355,28 +368,34 @@ class DashboardAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False  # Disable the ability to delete existing Dashboard records
 
+    def balance_colored(self, obj):
+        balance = obj.balance
+        if balance < 0:
+            return format_html('<span style="color:red;">{}</span>', balance)
+        elif balance > 0:
+            return format_html('<span style="color:green;">{}</span>', balance)
+        else:
+            return balance
+
+    balance_colored.short_description = 'Balance'  
+
     def get_queryset(self, request):
         # Calculate the total values for the dashboard
         total_cash_in = Summary.objects.aggregate(models.Sum('cash_in'))['cash_in__sum'] or 0
         total_cash_out = Summary.objects.aggregate(models.Sum('cash_out'))['cash_out__sum'] or 0
-        total_actual_cash_in = Summary.objects.aggregate(models.Sum('actual_cash_in'))['actual_cash_in__sum'] or 0
-        total_actual_cash_out = Summary.objects.aggregate(models.Sum('actual_cash_out'))['actual_cash_out__sum'] or 0
 
         # Create or update a single Dashboard record with the calculated totals
         dashboard, created = Dashboard.objects.get_or_create(pk=1)
         dashboard.total_cash_in = total_cash_in
         dashboard.total_cash_out = total_cash_out
-        dashboard.total_actual_cash_in = total_actual_cash_in
-        dashboard.total_actual_cash_out = total_actual_cash_out
 
         # Calculate and update the current balance
-        dashboard.current_balance = total_actual_cash_in - total_actual_cash_out
-
+        latest_summary = Summary.objects.latest('date')
+        dashboard.balance = latest_summary.balance
         dashboard.save()
 
         # Return a queryset with only the calculated Dashboard record
         return Dashboard.objects.filter(pk=1)
-    
     
 
 class SummaryResource(resources.ModelResource):
@@ -395,15 +414,66 @@ class SummaryAdminForm(forms.ModelForm):
             self.fields[field_name].widget.attrs['readonly'] = True
             self.fields[field_name].widget.attrs['style'] = 'background-color: #f2f2f2;'  # Optional: Apply a different background color
 
+
+
+
+class TransactionTypeFilter(admin.SimpleListFilter):
+    title = _('Transaction Type')
+    parameter_name = 'transaction_type'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('cash_in', _('Cash In')),
+            ('cash_out', _('Cash Out')),
+            ('balance', _('Balance')),
+        )
+
+    def queryset(self, request, queryset):
+        print("Filtering by:", self.value())
+        date_gte = request.GET.get('date__gte')
+        if date_gte:
+            date_gte = timezone.now().date() - timedelta(days=7)  # Modify this as needed
+        else:
+            date_gte = timezone.now().date()
+
+        if self.value() == 'cash_in':
+            filtered_query = queryset.filter(date__gte=date_gte, cash_in__gt=0)
+            print("Filtered Query:", filtered_query)
+            return filtered_query
+        elif self.value() == 'cash_out':
+            filtered_query = queryset.filter(date__gte=date_gte, cash_out__gt=0)
+            print("Filtered Query:", filtered_query)
+            return filtered_query
+        elif self.value() == 'balance':
+            filtered_query = queryset.filter(date__gte=date_gte, balance__gt=0)
+            print("Filtered Query:", filtered_query)
+            return filtered_query
+        else:
+            return queryset
+
+
+
+
 class SummaryAdmin(ImportExportModelAdmin, ExportActionMixin):
     resource_class = SummaryResource
-    list_display = ('date', 'cash_in', 'cash_out', 'actual_cash_in', 'actual_cash_out', 'actual_balance', 'planned_balance')
+    list_display = ('date', 'cash_in', 'cash_out','balance_colored')#'actual_cash_in', 'actual_cash_out', 'actual_balance', 
     search_fields = ['date']
     ordering = ['-date']
     form = SummaryAdminForm
-
-
     actions = ['update_balance_action', 'delete_all_data_action', 'delete_blank_rows_action', 'generate_transaction_details','show_transaction_history']
+    
+    list_filter = ('date',('date',DateRangeFilter),TransactionTypeFilter,)
+    def balance_colored(self, obj):
+        balance = obj.balance
+        if balance < 0:
+            return format_html('<span style="color:red;">{}</span>', balance)
+        elif balance > 0:
+            return format_html('<span style="color:green;">{}</span>', balance)
+        else:
+            return balance
+
+    balance_colored.short_description = 'Balance'
+    
     def has_add_permission(self, request):
         # Disable the ability to add new Summary records
         return False
@@ -439,22 +509,22 @@ class SummaryAdmin(ImportExportModelAdmin, ExportActionMixin):
 
         # Return HTML response
         return HttpResponse(details_html)
-    change_list_template = 'admin/cashflow/summary/change_list.html'
+    # change_list_template = 'admin/cashflow/summary/change_list.html'
 
-    def changelist_view(self, request, extra_context=None):
-        # Fetch aggregated data from Summary
-        aggregated_data = Summary.objects.aggregate(
-            total_cash_in=Sum('cash_in'),
-            total_cash_out=Sum('cash_out'),
-            total_actual_cash_in=Sum('actual_cash_in'),
-            total_actual_cash_out=Sum('actual_cash_out'),
-            current_balance=Sum('actual_cash_in') - Sum('actual_cash_out'),
-        )
+    # def changelist_view(self, request, extra_context=None):
+    #     # Fetch aggregated data from Summary
+    #     aggregated_data = Summary.objects.aggregate(
+    #         total_cash_in=Sum('cash_in'),
+    #         total_cash_out=Sum('cash_out'),
+    #         # total_actual_cash_in=Sum('actual_cash_in'),
+    #         # total_actual_cash_out=Sum('actual_cash_out'),
+    #         current_balance=Sum('cash_in') - Sum('cash_out'),
+    #     )
 
-        extra_context = extra_context or {}
-        extra_context.update(aggregated_data)
+    #     extra_context = extra_context or {}
+    #     extra_context.update(aggregated_data)
 
-        return super().changelist_view(request, extra_context=extra_context)
+    #     return super().changelist_view(request, extra_context=extra_context)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         if "_viewdetails" in request.POST:
@@ -464,6 +534,7 @@ class SummaryAdmin(ImportExportModelAdmin, ExportActionMixin):
     def render_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
         extra_context = {'show_viewdetails': True}
         return super().render_change_form(request, context, add, change, form_url, obj, extra_context=extra_context)
+    
     def generate_transaction_details(self, request, queryset):
         if queryset.count() == 1:
             selected_date = queryset[0].date
@@ -521,8 +592,8 @@ class SummaryAdmin(ImportExportModelAdmin, ExportActionMixin):
         blank_rows = queryset.filter(
             cash_in=0,
             cash_out=0,
-            actual_cash_in=0,
-            actual_cash_out=0,
+            # actual_cash_in=0,
+            # actual_cash_out=0,
         )
         blank_rows.delete()
 
@@ -556,13 +627,13 @@ class SummaryAdmin(ImportExportModelAdmin, ExportActionMixin):
         previous_summary = Summary.objects.filter(date__lt=obj.date).order_by('-date').first()
         
         if previous_summary:
-            obj.actual_balance = (
-                previous_summary.actual_balance +
-                obj.actual_cash_in -
-                obj.actual_cash_out
-            )
-            obj.planned_balance = (
-                previous_summary.planned_balance +
+            # obj.actual_balance = (
+            #     previous_summary.actual_balance +
+            #     obj.actual_cash_in -
+            #     obj.actual_cash_out
+            # )
+            obj.balance = (
+                previous_summary.balance +
                 obj.cash_in -
                 obj.cash_out
             )
@@ -578,8 +649,6 @@ class UserActionLogAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'action_description']
     ordering = ['-action_time']
     
-admin.site.register(Category)
-admin.site.register(Product)
 admin.site.register(UpdateCashIn, UpdateCashInAdmin)
 admin.site.register(UpdateCashOut, UpdateCashOutAdmin)
 admin.site.register(AvailableBalance, AvailableBalanceAdmin)

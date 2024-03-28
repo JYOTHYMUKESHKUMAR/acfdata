@@ -16,6 +16,8 @@
       <tr>
         <th>Income Source</th>
         <th>Cash In</th>
+        <th>Project</th>
+        <th>Cost Center</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -24,6 +26,8 @@
         <tr>
           <td>{{ cash_in_detail.income_source }}</td>
           <td>{{ cash_in_detail.cash_in }}</td>
+          <td>{{ cash_in_detail.project }}</td>
+          <td>{{ cash_in_detail.cost_center }}</td>
           <td>{{ cash_in_detail.status }}</td>
         </tr>
       {% endfor %}
@@ -36,6 +40,8 @@
       <tr>
         <th>Expense Source</th>
         <th>Cash Out</th>
+        <th>Project</th>
+        <th>Cost Center</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -44,6 +50,8 @@
         <tr>
           <td>{{ cash_out_detail.expense_source }}</td>
           <td>{{ cash_out_detail.cash_out }}</td>
+          <td>{{ cash_out_detail.project }}</td>
+          <td>{{ cash_out_detail.cost_center }}</td>
           <td>{{ cash_out_detail.status }}</td>
         </tr>
       {% endfor %}
